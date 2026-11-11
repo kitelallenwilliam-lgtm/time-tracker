@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Punch Time Tracker App</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+    }
+    .mono-time {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Smooth Pulse Animation for Live Status */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-indicator {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- App Brand -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <i class="fa-solid fa-user-clock text-xl"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">PunchClock</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Work Time & Attendance</p>
+          </div>
+        </div>
+
+        <!-- Right Header Items -->
+        <div class="flex items-center gap-3">
+          <!-- Online/Offline Badge -->
+          <div id="connectionBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-800/50 transition-all">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-indicator"></span>
+            <span id="connectionText">Online</span>
+          </div>
+
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Toggle Theme">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:inline"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex gap-2 border-t border-slate-200/60 dark:border-slate-700/60 pt-2 pb-2 overflow-x-auto no-scrollbar">
+        <button id="navPunch" onclick="switchTab('punch')" class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap bg-emerald-600 text-white shadow-sm transition">
+          <i class="fa-solid fa-fingerprint"></i> Clock Punch
+        </button>
+        <button id="navLogs" onclick="switchTab('logs')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition">
+          <i class="fa-solid fa-list-check"></i> Attendance Logs
+        </button>
+        <button id="navEmployees" onclick="switchTab('employees')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition">
+          <i class="fa-solid fa-users"></i> Staff Directory
+        </button>
+        <button id="navSettings" onclick="switchTab('settings')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition">
+          <i class="fa-solid fa-gear"></i> Settings & Integrations
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ================= TAB 1: PUNCH INTERFACE ================= -->
+    <section id="tabPunch" class="tab-content block space-y-6 max-w-2xl mx-auto">
+      
+      <!-- Live Time & Clock Header -->
+      <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden text-center border border-slate-800">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <p id="liveDate" class="text-slate-400 font-medium text-sm sm:text-base uppercase tracking-wider mb-1">Loading Date...</p>
+        <div id="liveClock" class="mono-time text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-3 drop-shadow-md">
+          00:00:00 AM
+        </div>
+        
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs text-slate-300 font-medium">
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i> Standard Shift Starts: <span id="displayShiftStart" class="font-bold text-white">09:00 AM</span>
+        </div>
+      </div>
+
+      <!-- Main Punch Box -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-md border border-slate-200 dark:border-slate-700 space-y-6">
+        
+        <!-- Employee Selector -->
+        <div>
+          <label for="employeeSelect" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+            <i class="fa-solid fa-user-tag text-emerald-600 dark:text-emerald-400 mr-1.5"></i> Select Employee
+          </label>
+          <div class="relative">
+            <select id="employeeSelect" onchange="updateCurrentStatusDisplay()" class="w-full pl-4 pr-10 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-2xl font-semibold text-slate-800 dark:text-slate-100 text-base focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+              <!-- Options populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Current Status Badge Banner -->
+        <div id="statusBanner" class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex items-center justify-between transition-all">
+          <div class="flex items-center gap-3">
+            <div id="statusIconBg" class="w-10 h-10 rounded-xl bg-slate-300 dark:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 text-lg">
+              <i id="statusIcon" class="fa-solid fa-user-clock"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Current Status</p>
+              <p id="statusText" class="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base">Clocked Out</p>
+            </div>
+          </div>
+          <span id="lastPunchTime" class="mono-time text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">--:--</span>
+        </div>
+
+        <!-- Action Buttons Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          
+          <!-- CLOCK IN BUTTON -->
+          <button id="btnClockIn" onclick="handleClockIn()" class="group relative overflow-hidden py-6 px-6 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white rounded-2xl shadow-lg shadow-emerald-600/25 transition-all duration-150 flex flex-col items-center justify-center gap-2 focus:ring-4 focus:ring-emerald-500/30">
+            <i class="fa-solid fa-right-to-bracket text-3xl group-hover:scale-110 transition-transform"></i>
+            <span class="text-xl font-extrabold tracking-wide uppercase">Clock In</span>
+            <span class="text-xs font-medium text-emerald-100/80">Start Working Shift</span>
+          </button>
+
+          <!-- CLOCK OUT BUTTON -->
+          <button id="btnClockOut" onclick="handleClockOut()" class="group relative overflow-hidden py-6 px-6 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white rounded-2xl shadow-lg shadow-rose-600/25 transition-all duration-150 flex flex-col items-center justify-center gap-2 focus:ring-4 focus:ring-rose-500/30">
+            <i class="fa-solid fa-right-from-bracket text-3xl group-hover:scale-110 transition-transform"></i>
+            <span class="text-xl font-extrabold tracking-wide uppercase">Clock Out</span>
+            <span class="text-xs font-medium text-rose-100/80">Finish Active Shift</span>
+          </button>
+
+        </div>
+
+        <!-- Quick Note Field (Optional) -->
+        <div>
+          <label for="punchNote" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Shift / Work Note (Optional)</label>
+          <input type="text" id="punchNote" placeholder="e.g. Working remotely, Project A..." class="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+        </div>
+
+      </div>
+
+      <!-- Quick Messenger Share Card -->
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-5 shadow-md flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-2xl shrink-0">
+            <i class="fa-brands fa-facebook-messenger"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-sm sm:text-base">Share Shift to Messenger</h2>
+            <p class="text-xs text-blue-100">Send your latest timestamp directly to team chat</p>
+          </div>
+        </div>
+        <button onclick="shareLatestToMessenger()" class="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 active:scale-95 text-xs font-extrabold rounded-xl shadow transition shrink-0">
+          Send <i class="fa-solid fa-paper-plane ml-1"></i>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: ATTENDANCE LOGS & DASHBOARD ================= -->
+    <section id="tabLogs" class="tab-content hidden space-y-6">
+      
+      <!-- Dashboard Summary Stats Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-business-time"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Total Hours</p>
+            <p id="statTotalHours" class="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 mono-time">00:00</p>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Overtime Hours</p>
+            <p id="statTotalOT" class="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 mono-time">0.0 hrs</p>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-user-check"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Active Shifts</p>
+            <p id="statActiveShifts" class="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-clipboard-user"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Total Entries</p>
+            <p id="statTotalEntries" class="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">0</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Logs Controls Bar -->
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        
+        <!-- Search & Filter Controls -->
+        <div class="flex flex-wrap items-center gap-2 flex-1">
+          <div class="relative flex-1 min-w-[160px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+            <input type="text" id="filterSearch" oninput="renderLogsTable()" placeholder="Search employee..." class="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+
+          <select id="filterStatus" onchange="renderLogsTable()" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="ALL">All Statuses</option>
+            <option value="On Time">On Time</option>
+            <option value="Late">Late</option>
+            <option value="Active">Active / Working</option>
+          </select>
+
+          <input type="date" id="filterDate" onchange="renderLogsTable()" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button onclick="clearLogFilters()" class="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold" title="Clear Filters">
+            <i class="fa-solid fa-rotate-right"></i> Reset
+          </button>
+        </div>
+
+        <!-- Export & Action Buttons -->
+        <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700">
+          <button onclick="exportToCSV()" class="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-excel"></i> Export Excel (CSV)
+          </button>
+          <button onclick="copyFormattedLogsToClipboard()" class="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition" title="Copy Log Summary text">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Main Logs Table -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th class="p-4">Employee</th>
+                <th class="p-4">Date</th>
+                <th class="p-4">Time In</th>
+                <th class="p-4">Time Out</th>
+                <th class="p-4">Total Hrs</th>
+                <th class="p-4">OT (Hours)</th>
+                <th class="p-4">Status</th>
+                <th class="p-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/60 text-sm">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="logsEmptyState" class="hidden p-12 text-center">
+          <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+            <i class="fa-solid fa-folder-open"></i>
+          </div>
+          <p class="font-bold text-slate-700 dark:text-slate-300">No Attendance Records Found</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Clock in from the Punch tab or adjust your filters.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 3: STAFF DIRECTORY ================= -->
+    <section id="tabEmployees" class="tab-content hidden space-y-6">
+      
+      <!-- Employee Directory Top Bar -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Staff Directory</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Manage registered employees and ID codes</p>
+        </div>
+        <button onclick="openAddEmployeeModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-2">
+          <i class="fa-solid fa-user-plus"></i> Add New Employee
+        </button>
+      </div>
+
+      <!-- Employee List Cards Grid -->
+      <div id="employeeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered via JS -->
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 4: SETTINGS & INTEGRATIONS ================= -->
+    <section id="tabSettings" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+      
+      <!-- General Shift Config Card -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-emerald-500"></i> Work Shift Configuration
+        </h3>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="shiftStartTimeInput" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Standard Shift Start Time</label>
+            <input type="time" id="shiftStartTimeInput" value="09:00" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-semibold">
+            <p class="text-[11px] text-slate-500 mt-1">Clock-ins after this time are marked as "Late".</p>
+          </div>
+          <div>
+            <label for="overtimeThresholdInput" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Standard Daily Work Hours (for OT)</label>
+            <input type="number" id="overtimeThresholdInput" value="8" min="1" max="24" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-semibold">
+            <p class="text-[11px] text-slate-500 mt-1">Hours above this standard earn Overtime.</p>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button onclick="saveShiftSettings()" class="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-extrabold rounded-xl hover:opacity-90 transition">
+            Save Shift Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- Messenger Integration Guide Card -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shrink-0">
+            <i class="fa-brands fa-facebook-messenger"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Facebook Messenger & Forms Integration</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Instructions for live automated tracking via Messenger</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-4">
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+            <p class="font-bold text-slate-800 dark:text-slate-200">Method 1: Direct Messenger Share (Built-in)</p>
+            <p>Click the <strong>"Send to Messenger"</strong> button after punching in/out. It automatically formats your timestamp and opens Messenger or copies the formatted line to paste into your staff group chat.</p>
+          </div>
+
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+            <p class="font-bold text-slate-800 dark:text-slate-200">Method 2: Microsoft Forms Link via Messenger</p>
+            <p>1. Create a simple 2-question Microsoft Form ("Time In/Out" + "Employee Name").</p>
+            <p>2. Pin the Microsoft Form short link inside your Facebook Messenger group chat.</p>
+            <p>3. Responses sync instantly into your connected Excel workbook on OneDrive!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Reset & Local Storage Card -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/40 shadow-sm space-y-3">
+        <h3 class="text-base font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation"></i> Danger Zone
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Clear local attendance logs or reset employee database to default settings.</p>
+        
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button onclick="clearAllLogs()" class="px-4 py-2 bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold rounded-xl hover:bg-rose-200 transition">
+            Clear All Logs
+          </button>
+          <button onclick="resetToSampleData()" class="px-4 py-2 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-200 transition">
+            Reset Sample Data
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= MODALS & OVERLAYS ================= -->
+
+  <!-- Add/Edit Employee Modal -->
+  <div id="employeeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 relative">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+        <h3 id="modalEmployeeTitle" class="text-lg font-extrabold text-slate-900 dark:text-white">Add New Employee</h3>
+        <button onclick="closeEmployeeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="editEmployeeIndex" value="-1">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Employee ID</label>
+        <input type="text" id="modalEmpId" placeholder="e.g. EMP-004" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-semibold">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Full Name</label>
+        <input type="text" id="modalEmpName" placeholder="e.g. Sarah Connor" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-semibold">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Department / Role</label>
+        <input type="text" id="modalEmpRole" placeholder="e.g. Operations / Logistics" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-semibold">
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button onclick="closeEmployeeModal()" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-200 transition">
+          Cancel
+        </button>
+        <button onclick="saveEmployee()" class="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition">
+          Save Employee
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Confirmation Effects (Web Audio API Synthesized) -->
+  <script>
+    // Audio synthesizer for touch sound effects
+    function playBeep(type) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'success') {
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'out') {
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(349.23, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, ctx.currentTime);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        }
+      } catch (e) {
+        console.log('Audio Context error or not allowed:', e);
+      }
+    }
+  </script>
+
+  <!-- Main Application Logic Script -->
+  <script>
+    // Initial Default Data
+    const defaultEmployees = [
+      { id: 'EMP-101', name: 'John Doe', role: 'Operations Lead' },
+      { id: 'EMP-102', name: 'Jane Smith', role: 'Sales Executive' },
+      { id: 'EMP-103', name: 'Michael Tan', role: 'Customer Support' },
+      { id: 'EMP-104', name: 'Maria Santos', role: 'Warehouse Admin' }
+    ];
+
+    // Global State Variables
+    let employees = [];
+    let logs = [];
+    let settings = {
+      shiftStart: '09:00',
+      otThreshold: 8
+    };
+
+    // --- APPLICATION INIT ---
+    window.onload = function() {
+      loadLocalStorage();
+      initTheme();
+      startLiveClock();
+      checkOnlineStatus();
+      window.addEventListener('online', checkOnlineStatus);
+      window.addEventListener('offline', checkOnlineStatus);
+
+      populateEmployeeDropdown();
+      updateCurrentStatusDisplay();
+      renderLogsTable();
+      renderEmployeesGrid();
+      updateDashboardStats();
+    };
+
+    // --- LOCAL STORAGE HELPERS ---
+    function loadLocalStorage() {
+      const storedEmp = localStorage.getItem('pt_employees');
+      employees = storedEmp ? JSON.parse(storedEmp) : defaultEmployees;
+
+      const storedLogs = localStorage.getItem('pt_logs');
+      logs = storedLogs ? JSON.parse(storedLogs) : [];
+
+      const storedSet = localStorage.getItem('pt_settings');
+      if (storedSet) {
+        settings = JSON.parse(storedSet);
+      }
+      document.getElementById('shiftStartTimeInput').value = settings.shiftStart;
+      document.getElementById('overtimeThresholdInput').value = settings.otThreshold;
+      document.getElementById('displayShiftStart').innerText = format12Hour(settings.shiftStart);
+    }
+
+    function saveLocalStorage() {
+      localStorage.setItem('pt_employees', JSON.stringify(employees));
+      localStorage.setItem('pt_logs', JSON.stringify(logs));
+      localStorage.setItem('pt_settings', JSON.stringify(settings));
+    }
+
+    // --- THEME & NETWORK STATUS ---
+    function initTheme() {
+      const toggleBtn = document.getElementById('themeToggle');
+      toggleBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+    }
+
+    function checkOnlineStatus() {
+      const badge = document.getElementById('connectionBadge');
+      const text = document.getElementById('connectionText');
+      if (navigator.onLine) {
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-800/50 transition-all";
+        text.innerText = "Online";
+      } else {
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50 dark:border-amber-800/50 transition-all";
+        text.innerText = "Offline (Saved Locally)";
+      }
+    }
+
+    // --- LIVE CLOCK & TIMERS ---
+    function startLiveClock() {
+      function updateClock() {
+        const now = new Date();
+        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        document.getElementById('liveDate').innerText = now.toLocaleDateString('en-US', dateOptions);
+        
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const formattedHours = String(hours).padStart(2, '0');
+
+        document.getElementById('liveClock').innerText = `${formattedHours}:${minutes}:${seconds} ${ampm}`;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-600', 'dark:text-slate-300');
+      });
+
+      if (tabId === 'punch') {
+        document.getElementById('tabPunch').classList.remove('hidden');
+        document.getElementById('navPunch').classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+      } else if (tabId === 'logs') {
+        document.getElementById('tabLogs').classList.remove('hidden');
+        document.getElementById('navLogs').classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+        renderLogsTable();
+      } else if (tabId === 'employees') {
+        document.getElementById('tabEmployees').classList.remove('hidden');
+        document.getElementById('navEmployees').classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+        renderEmployeesGrid();
+      } else if (tabId === 'settings') {
+        document.getElementById('tabSettings').classList.remove('hidden');
+        document.getElementById('navSettings').classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+      }
+    }
+
+    // --- EMPLOYEE DROPDOWN & STATUS DISPLAY ---
+    function populateEmployeeDropdown() {
+      const select = document.getElementById('employeeSelect');
+      select.innerHTML = '';
+      if (employees.length === 0) {
+        select.innerHTML = '<option value="">No employees found. Add in Directory.</option>';
+        return;
+      }
+      employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.innerText = `${emp.name} (${emp.id}) - ${emp.role}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function updateCurrentStatusDisplay() {
+      const empId = document.getElementById('employeeSelect').value;
+      if (!empId) return;
+
+      const activeLog = logs.find(l => l.empId === empId && !l.timeOut);
+      const banner = document.getElementById('statusBanner');
+      const iconBg = document.getElementById('statusIconBg');
+      const icon = document.getElementById('statusIcon');
+      const text = document.getElementById('statusText');
+      const timeBadge = document.getElementById('lastPunchTime');
+
+      if (activeLog) {
+        banner.className = "p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between transition-all";
+        iconBg.className = "w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-lg";
+        icon.className = "fa-solid fa-business-time pulse-indicator";
+        text.className = "font-bold text-emerald-800 dark:text-emerald-300 text-sm sm:text-base";
+        text.innerText = "Currently Working (Clocked In)";
+        timeBadge.innerText = `In: ${activeLog.timeIn}`;
+        timeBadge.className = "mono-time text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100";
+      } else {
+        const lastFinishedLog = logs.filter(l => l.empId === empId && l.timeOut).slice(-1)[0];
+        banner.className = "p-4 rounded-2xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex items-center justify-between transition-all";
+        iconBg.className = "w-10 h-10 rounded-xl bg-slate-300 dark:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 text-lg";
+        icon.className = "fa-solid fa-user-clock";
+        text.className = "font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base";
+        text.innerText = "Clocked Out";
+        timeBadge.innerText = lastFinishedLog ? `Last Out: ${lastFinishedLog.timeOut}` : "No Shift Today";
+        timeBadge.className = "mono-time text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300";
+      }
+    }
+
+    // --- PUNCH CLOCK ACTIONS ---
+    function handleClockIn() {
+      const empId = document.getElementById('employeeSelect').value;
+      if (!empId) {
+        playBeep('error');
+        alert("Please select an employee first.");
+        return;
+      }
+
+      const activeLog = logs.find(l => l.empId === empId && !l.timeOut);
+      if (activeLog) {
+        playBeep('error');
+        alert(`This employee is already Clocked In since ${activeLog.timeIn}!`);
+        return;
+      }
+
+      const emp = employees.find(e => e.id === empId);
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const noteStr = document.getElementById('punchNote').value.trim();
+
+      // Check Late status against shift settings
+      const shiftStartTime = settings.shiftStart;
+      const [sHour, sMin] = shiftStartTime.split(':').map(Number);
+      const isLate = (now.getHours() > sHour) || (now.getHours() === sHour && now.getMinutes() > sMin);
+
+      const newLog = {
+        id: 'LOG-' + Date.now(),
+        empId: emp.id,
+        empName: emp.name,
+        date: dateStr,
+        timeIn: timeStr,
+        timeInRaw: now.toISOString(),
+        timeOut: null,
+        timeOutRaw: null,
+        totalHours: 0,
+        otHours: 0,
+        status: isLate ? 'Late' : 'On Time',
+        note: noteStr
+      };
+
+      logs.unshift(newLog);
+      saveLocalStorage();
+      playBeep('success');
+
+      document.getElementById('punchNote').value = '';
+      updateCurrentStatusDisplay();
+      updateDashboardStats();
+    }
+
+    function handleClockOut() {
+      const empId = document.getElementById('employeeSelect').value;
+      if (!empId) {
+        playBeep('error');
+        alert("Please select an employee first.");
+        return;
+      }
+
+      const activeLogIndex = logs.findIndex(l => l.empId === empId && !l.timeOut);
+      if (activeLogIndex === -1) {
+        playBeep('error');
+        alert("No active Clock-In session found for this employee.");
+        return;
+      }
+
+      const now = new Date();
+      const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timeInDate = new Date(logs[activeLogIndex].timeInRaw);
+      
+      // Calculate Total Working Hours
+      const diffMs = now - timeInDate;
+      const diffHrs = diffMs / (1000 * 60 * 60);
+      
+      const otThresh = parseFloat(settings.otThreshold) || 8;
+      const otHrs = diffHrs > otThresh ? Math.round((diffHrs - otThresh) * 100) / 100 : 0;
+
+      logs[activeLogIndex].timeOut = timeOutStr;
+      logs[activeLogIndex].timeOutRaw = now.toISOString();
+      logs[activeLogIndex].totalHours = Math.round(diffHrs * 100) / 100;
+      logs[activeLogIndex].otHours = otHrs;
+
+      saveLocalStorage();
+      playBeep('out');
+
+      updateCurrentStatusDisplay();
+      updateDashboardStats();
+    }
+
+    // --- ATTENDANCE LOGS TABLE & FILTERS ---
+    function renderLogsTable() {
+      const tbody = document.getElementById('logsTableBody');
+      const emptyState = document.getElementById('logsEmptyState');
+      tbody.innerHTML = '';
+
+      const searchVal = document.getElementById('filterSearch').value.toLowerCase();
+      const statusVal = document.getElementById('filterStatus').value;
+      const dateVal = document.getElementById('filterDate').value;
+
+      const filtered = logs.filter(l => {
+        const matchesSearch = l.empName.toLowerCase().includes(searchVal) || l.empId.toLowerCase().includes(searchVal);
+        let matchesStatus = true;
+        if (statusVal === 'Active') matchesStatus = !l.timeOut;
+        else if (statusVal !== 'ALL') matchesStatus = l.status === statusVal;
+
+        const matchesDate = !dateVal || l.date === dateVal;
+        return matchesSearch && matchesStatus && matchesDate;
+      });
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      filtered.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition";
+
+        // Status Badge Style
+        let statusBadge = '';
+        if (!log.timeOut) {
+          statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Active Shift</span>';
+        } else if (log.status === 'Late') {
+          statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">Late</span>';
+        } else {
+          statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">On Time</span>';
+        }
+
+        // Format Total Hours display ([h]:mm)
+        let totalHrsDisplay = '--:--';
+        if (log.timeOut && log.totalHours) {
+          const h = Math.floor(log.totalHours);
+          const m = Math.round((log.totalHours - h) * 60);
+          totalHrsDisplay = `${h}h ${m}m`;
+        }
+
+        tr.innerHTML = `
+          <td class="p-4">
+            <div class="font-bold text-slate-800 dark:text-slate-100">${log.empName}</div>
+            <div class="text-xs text-slate-400 font-mono">${log.empId}</div>
+          </td>
+          <td class="p-4 text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">${log.date}</td>
+          <td class="p-4 mono-time font-semibold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">${log.timeIn}</td>
+          <td class="p-4 mono-time font-semibold text-rose-600 dark:text-rose-400 text-xs whitespace-nowrap">${log.timeOut || '<span class="italic text-slate-400">Working...</span>'}</td>
+          <td class="p-4 mono-time text-xs font-bold">${totalHrsDisplay}</td>
+          <td class="p-4 mono-time text-xs font-bold ${log.otHours > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}">${log.otHours > 0 ? log.otHours + ' hrs' : '0'}</td>
+          <td class="p-4 whitespace-nowrap">${statusBadge}</td>
+          <td class="p-4 text-center">
+            <button onclick="deleteLogEntry('${log.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition" title="Delete Log">
+              <i class="fa-solid fa-trash-can text-sm"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function clearLogFilters() {
+      document.getElementById('filterSearch').value = '';
+      document.getElementById('filterStatus').value = 'ALL';
+      document.getElementById('filterDate').value = '';
+      renderLogsTable();
+    }
+
+    function deleteLogEntry(logId) {
+      if (confirm("Are you sure you want to delete this log entry?")) {
+        logs = logs.filter(l => l.id !== logId);
+        saveLocalStorage();
+        renderLogsTable();
+        updateDashboardStats();
+        updateCurrentStatusDisplay();
+      }
+    }
+
+    // --- DASHBOARD SUMMARY STATS ---
+    function updateDashboardStats() {
+      let totalHrsSum = 0;
+      let totalOTSum = 0;
+      let activeShiftsCount = 0;
+
+      logs.forEach(l => {
+        if (!l.timeOut) {
+          activeShiftsCount++;
+        } else {
+          totalHrsSum += l.totalHours || 0;
+          totalOTSum += l.otHours || 0;
+        }
+      });
+
+      const totalH = Math.floor(totalHrsSum);
+      const totalM = Math.round((totalHrsSum - totalH) * 60);
+
+      document.getElementById('statTotalHours').innerText = `${totalH}h ${totalM}m`;
+      document.getElementById('statTotalOT').innerText = `${totalOTSum.toFixed(1)} hrs`;
+      document.getElementById('statActiveShifts').innerText = activeShiftsCount;
+      document.getElementById('statTotalEntries').innerText = logs.length;
+    }
+
+    // --- EXPORT TO EXCEL (CSV) ---
+    function exportToCSV() {
+      if (logs.length === 0) {
+        alert("No logs available to export.");
+        return;
+      }
+
+      let csv = 'Employee ID,Employee Name,Date,Time In,Time Out,Total Working Hours,Overtime Hours,Status,Note\n';
+      logs.forEach(l => {
+        const noteClean = l.note ? `"${l.note.replace(/"/g, '""')}"` : '';
+        csv += `"${l.empId}","${l.empName}","${l.date}","${l.timeIn}","${l.timeOut || 'Working'}","${l.totalHours || 0}","${l.otHours || 0}","${l.status}",${noteClean}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Work_Time_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // --- MESSENGER & CLIPBOARD SHARING ---
+    function shareLatestToMessenger() {
+      const empId = document.getElementById('employeeSelect').value;
+      if (!empId) {
+        alert("Select an employee first.");
+        return;
+      }
+
+      const empLogs = logs.filter(l => l.empId === empId);
+      if (empLogs.length === 0) {
+        alert("No timestamps recorded for this employee yet.");
+        return;
+      }
+
+      const latest = empLogs[0];
+      let msg = `⏱️ *ATTENDANCE TIMESTAMP*\n`;
+      msg += `👤 Employee: ${latest.empName} (${latest.empId})\n`;
+      msg += `📅 Date: ${latest.date}\n`;
+      msg += `🟢 Time In: ${latest.timeIn}\n`;
+      if (latest.timeOut) {
+        msg += `🔴 Time Out: ${latest.timeOut}\n`;
+        msg += `⌛ Total Shift: ${latest.totalHours} hrs (OT: ${latest.otHours} hrs)\n`;
+      } else {
+        msg += `🟡 Status: Currently Clocked In\n`;
+      }
+      if (latest.note) msg += `📝 Note: ${latest.note}\n`;
+
+      // Copy text to clipboard fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = msg;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      // Attempt to open Facebook Messenger
+      window.open('https://m.me', '_blank');
+      alert("Timestamp summary copied to clipboard and Facebook Messenger opened! Paste into your chat.");
+    }
+
+    function copyFormattedLogsToClipboard() {
+      if (logs.length === 0) {
+        alert("No logs to copy.");
+        return;
+      }
+      let summaryStr = `📊 WORK TIME SUMMARY (${new Date().toLocaleDateString()})\n\n`;
+      logs.slice(0, 10).forEach(l => {
+        summaryStr += `• ${l.empName}: IN ${l.timeIn} | OUT ${l.timeOut || 'Active'} [${l.status}]\n`;
+      });
+
+      const textArea = document.createElement("textarea");
+      textArea.value = summaryStr;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      alert("Recent attendance log summary copied to clipboard!");
+    }
+
+    // --- STAFF DIRECTORY MANAGEMENT ---
+    function renderEmployeesGrid() {
+      const grid = document.getElementById('employeeGrid');
+      grid.innerHTML = '';
+
+      employees.forEach((emp, index) => {
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between";
+        card.innerHTML = `
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center justify-center text-lg">
+              ${emp.name.charAt(0)}
+            </div>
+            <div>
+              <p class="font-extrabold text-slate-900 dark:text-white">${emp.name}</p>
+              <p class="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">${emp.id}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${emp.role || 'Staff Member'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="editEmployee(${index})" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button onclick="deleteEmployee(${index})" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function openAddEmployeeModal() {
+      document.getElementById('editEmployeeIndex').value = '-1';
+      document.getElementById('modalEmployeeTitle').innerText = 'Add New Employee';
+      document.getElementById('modalEmpId').value = `EMP-${Math.floor(100 + Math.random() * 900)}`;
+      document.getElementById('modalEmpName').value = '';
+      document.getElementById('modalEmpRole').value = '';
+      document.getElementById('employeeModal').classList.remove('hidden');
+    }
+
+    function closeEmployeeModal() {
+      document.getElementById('employeeModal').classList.add('hidden');
+    }
+
+    function editEmployee(index) {
+      const emp = employees[index];
+      document.getElementById('editEmployeeIndex').value = index;
+      document.getElementById('modalEmployeeTitle').innerText = 'Edit Employee';
+      document.getElementById('modalEmpId').value = emp.id;
+      document.getElementById('modalEmpName').value = emp.name;
+      document.getElementById('modalEmpRole').value = emp.role;
+      document.getElementById('employeeModal').classList.remove('hidden');
+    }
+
+    function saveEmployee() {
+      const index = parseInt(document.getElementById('editEmployeeIndex').value);
+      const id = document.getElementById('modalEmpId').value.trim();
+      const name = document.getElementById('modalEmpName').value.trim();
+      const role = document.getElementById('modalEmpRole').value.trim();
+
+      if (!id || !name) {
+        alert("Employee ID and Name are required.");
+        return;
+      }
+
+      if (index === -1) {
+        employees.push({ id, name, role });
+      } else {
+        employees[index] = { id, name, role };
+      }
+
+      saveLocalStorage();
+      populateEmployeeDropdown();
+      renderEmployeesGrid();
+      closeEmployeeModal();
+    }
+
+    function deleteEmployee(index) {
+      if (confirm(`Remove ${employees[index].name} from staff directory?`)) {
+        employees.splice(index, 1);
+        saveLocalStorage();
+        populateEmployeeDropdown();
+        renderEmployeesGrid();
+      }
+    }
+
+    // --- SETTINGS MANAGEMENT ---
+    function saveShiftSettings() {
+      settings.shiftStart = document.getElementById('shiftStartTimeInput').value;
+      settings.otThreshold = document.getElementById('overtimeThresholdInput').value;
+      saveLocalStorage();
+      document.getElementById('displayShiftStart').innerText = format12Hour(settings.shiftStart);
+      alert("Shift settings saved successfully.");
+    }
+
+    function clearAllLogs() {
+      if (confirm("Are you sure you want to PERMANENTLY ERASE all attendance logs?")) {
+        logs = [];
+        saveLocalStorage();
+        renderLogsTable();
+        updateDashboardStats();
+        updateCurrentStatusDisplay();
+      }
+    }
+
+    function resetToSampleData() {
+      if (confirm("Reset employees and settings to default sample state?")) {
+        employees = defaultEmployees;
+        saveLocalStorage();
+        populateEmployeeDropdown();
+        renderEmployeesGrid();
+        updateCurrentStatusDisplay();
+      }
+    }
+
+    // --- UTILITY FUNCTIONS ---
+    function format12Hour(time24) {
+      if (!time24) return '09:00 AM';
+      const [h, m] = time24.split(':');
+      let hours = parseInt(h);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${String(hours).padStart(2, '0')}:${m} ${ampm}`;
+    }
+  </script>
+</body>
+</html>
